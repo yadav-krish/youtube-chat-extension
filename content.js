@@ -1,43 +1,48 @@
-console.log("YouTube Chat Extension loaded");
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type !== "GET_CURRENT_VIDEO_ID") return;
 
-// Simple helper to check if this is a video page
-function isVideoPage() {
-  return window.location.pathname === "/watch";
-}
+  try {
+    // Safety check: ensure we're on YouTube
+    const isYouTube =
+      window.location.hostname.includes("youtube.com") ||
+      window.location.hostname.includes("youtu.be");
 
-if (isVideoPage()) {
-  injectChatPanel();
-}
+    if (!isYouTube) {
+      sendResponse({ error: "This page is not YouTube" });
+      return;
+    }
 
-function injectChatPanel() {
-  // Avoid injecting twice
-  if (document.getElementById("yt-chat-panel")) return;
+    const { pathname, search } = window.location;
+    let videoId = null;
 
-  const panel = document.createElement("div");
-  panel.id = "yt-chat-panel";
+    // Case 1: Standard watch page (?v=VIDEO_ID)
+    const queryParams = new URLSearchParams(search);
+    videoId = queryParams.get("v");
 
-  panel.innerHTML = `
-    <div style="font-weight: bold; margin-bottom: 8px;">
-      Chat with this video
-    </div>
-    <div style="font-size: 12px; color: #666;">
-      Phase 1: Extension loaded ✅
-    </div>
-  `;
+    // Case 2: Shorts URL (/shorts/VIDEO_ID)
+    if (!videoId && pathname.startsWith("/shorts/")) {
+      videoId = pathname.split("/shorts/")[1]?.split("/")[0];
+    }
 
-  Object.assign(panel.style, {
-    position: "fixed",
-    top: "80px",
-    right: "20px",
-    width: "300px",
-    height: "200px",
-    backgroundColor: "white",
-    border: "1px solid #ccc",
-    borderRadius: "8px",
-    padding: "12px",
-    zIndex: 9999,
-    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-  });
+    // Case 3: Embedded player (/embed/VIDEO_ID)
+    if (!videoId && pathname.startsWith("/embed/")) {
+      videoId = pathname.split("/embed/")[1]?.split("/")[0];
+    }
 
-  document.body.appendChild(panel);
-}
+    if (!videoId) {
+      sendResponse({ error: "Unable to detect video ID from URL" });
+      return;
+    }
+
+    sendResponse({ videoId });
+  } catch (error) {
+    console.error("Video ID detection failed:", error);
+    sendResponse({
+      error: "Unexpected error while extracting video ID",
+      details: error.message,
+    });
+  }
+
+  // Required: keep the message channel open
+  return true;
+});

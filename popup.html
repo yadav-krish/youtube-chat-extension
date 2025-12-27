@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="styles.css" />
+    <title>Video Context Assistant</title>
+  </head>
+
+  <body>
+    <div class="app-container">
+      <!-- Header -->
+      <header class="app-header">
+        <div class="brand">
+          <svg
+            class="brand-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+            />
+          </svg>
+          <h2>Ask the Video</h2>
+        </div>
+
+        <div class="app-status" id="status">
+          <span class="status-indicator"></span>
+          <span class="status-text">Idle</span>
+        </div>
+      </header>
+
+      <!-- Active Video Info -->
+      <section class="video-context" id="videoInfo" hidden>
+        <div class="video-meta">
+          <svg class="video-meta-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+
+          <div class="video-meta-text">
+            <div class="video-meta-title" id="videoTitle">Detecting video…</div>
+            <div class="video-meta-url" id="videoUrl"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Conversation Area -->
+      <main class="conversation">
+        <div class="message-list" id="messages">
+          <!-- Intro Message -->
+          <div class="message system-message">
+            <div class="system-avatar">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M9.5 9a3 3 0 0 1 5 1.5c0 2-3 3-3 3" />
+                <path d="M12 17h.01" />
+              </svg>
+            </div>
+
+            <div class="message-body">
+              <p>
+                I answer questions using the
+                <strong>current video’s content</strong>. Ask for explanations,
+                summaries, or specific moments — timestamps included when
+                possible.
+              </p>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Input Area -->
+      <footer class="input-section">
+        <div class="input-box">
+          <textarea
+            id="question"
+            placeholder="Ask something about this video…"
+            rows="1"
+            maxlength="500"
+          ></textarea>
+
+          <button id="ask" class="send-btn" disabled aria-label="Ask question">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22,2 15,22 11,13 2,9 22,2" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="input-meta">
+          <span class="char-count" id="charCounter">0 / 500</span>
+          <span class="engine-label">Context-aware AI</span>
+        </div>
+      </footer>
+
+      <!-- Loading State -->
+      <div class="overlay-loading" id="loadingOverlay" hidden>
+        <div class="loader">
+          <div class="spinner"></div>
+          <p>Analyzing video…</p>
+        </div>
+      </div>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

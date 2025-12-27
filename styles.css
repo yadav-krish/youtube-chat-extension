@@ -1,0 +1,268 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  background: #f5f6f8;
+}
+
+.app-container {
+  width: 380px;
+  height: 580px;
+  background: #ffffff;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+/* Header */
+
+.app-header {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-icon {
+  width: 20px;
+  height: 20px;
+  color: #2563eb;
+}
+
+.brand h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.app-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+/* Video Context */
+
+.video-context {
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.video-meta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.video-meta-icon {
+  width: 18px;
+  height: 18px;
+  color: #2563eb;
+}
+
+.video-meta-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #111827;
+  line-height: 1.3;
+}
+
+.video-meta-url {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+/* Messages */
+
+.conversation {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.message-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.message {
+  display: flex;
+  gap: 10px;
+}
+
+.user-message {
+  flex-direction: row-reverse;
+}
+
+.system-avatar,
+.ai-avatar,
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.system-avatar,
+.ai-avatar {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.user-avatar {
+  background: #4b5563;
+  color: #ffffff;
+}
+
+.message-content {
+  background: #f3f4f6;
+  border-radius: 12px;
+  padding: 10px 14px;
+  max-width: 260px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #111827;
+}
+
+.user-message .message-content {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+/* Input */
+
+.input-section {
+  border-top: 1px solid #e5e7eb;
+  padding: 12px 14px;
+}
+
+.input-box {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 6px 8px;
+}
+
+.input-box:focus-within {
+  border-color: #2563eb;
+}
+
+#question {
+  flex: 1;
+  border: none;
+  outline: none;
+  resize: none;
+  font-size: 13px;
+  line-height: 1.4;
+  font-family: inherit;
+  background: transparent;
+  max-height: 80px;
+}
+
+.send-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: #2563eb;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.send-btn:disabled {
+  background: #c7d2fe;
+  cursor: not-allowed;
+}
+
+.input-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+/* Loading */
+
+.overlay-loading {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loader {
+  text-align: center;
+  font-size: 13px;
+  color: #374151;
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 8px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Errors */
+
+.error-message {
+  background: #fee2e2 !important;
+  color: #b91c1c !important;
+}
+
+/* Small screens */
+
+@media (max-width: 420px) {
+  .app-container {
+    width: 360px;
+  }
+
+  .message-content {
+    max-width: 220px;
+  }
+}
