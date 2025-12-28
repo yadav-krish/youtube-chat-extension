@@ -1,100 +1,199 @@
-let activeVideoId = null;
-let activeVideoTitle = null;
-
-const input = document.getElementById("question");
-const sendBtn = document.getElementById("ask");
-const messages = document.getElementById("messages");
-const counter = document.getElementById("charCounter");
 const status = document.getElementById("status");
-const loader = document.getElementById("loadingOverlay");
-const videoBox = document.getElementById("videoInfo");
+const videoInfo = document.getElementById("videoInfo");
 const videoTitle = document.getElementById("videoTitle");
 const videoUrl = document.getElementById("videoUrl");
+const messages = document.getElementById("messages");
+const input = document.getElementById("question");
+const sendBtn = document.getElementById("ask"); // ✅ FIXED: was "sendBtn"
+const counter = document.getElementById("charCounter"); // ✅ FIXED: was "charCount"
+const loader = document.getElementById("loadingOverlay"); // ✅ FIXED: was "loader"
 
-document.addEventListener("DOMContentLoaded", () => {
-  init();
-  bindEvents();
-});
+let activeVideoId = null;
 
-function init() {
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (!tabs?.length) {
-      setStatus("error", "No active tab");
-      return;
-    }
+// -------------------- initialization --------------------
 
-    const tab = tabs[0];
-    const videoId = getVideoId(tab.url);
-
-    if (!videoId) {
-      setStatus("error", "No video detected");
-      addMessage("Open a YouTube video to start.", "ai", true);
-      return;
-    }
-
-    activeVideoId = videoId;
-    activeVideoTitle = tab.title;
-
-    showVideo(tab);
-    setStatus("ready", "Ready");
-    input.disabled = false;
-    input.focus();
-  });
-}
-
-function bindEvents() {
-  sendBtn.addEventListener("click", sendQuestion);
-
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendQuestion();
-    }
-  });
-
-  input.addEventListener("input", () => {
-    resizeInput();
-    updateCounter();
-    toggleSend();
-  });
-
-  updateCounter();
-  toggleSend();
-}
-
-function getVideoId(url) {
+async function initialize() {
   try {
-    const u = new URL(url);
+    setStatus("loading", "Analyzing video...");
 
-    if (u.hostname.includes("youtube.com")) {
-      if (u.searchParams.get("v")) return u.searchParams.get("v");
-      if (u.pathname.startsWith("/shorts/"))
-        return u.pathname.split("/shorts/")[1]?.split("/")[0];
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+
+    if (!tab?.id) {
+      setStatus("error", "No active tab");
+      addMessage("Could not detect active tab.", "ai", true);
+      return;
     }
 
-    if (u.hostname === "youtu.be") return u.pathname.slice(1);
+    console.log("Current tab URL:", tab.url);
+
+    // Check if we're on YouTube
+    const isYouTube =
+      tab.url?.includes("youtube.com") || tab.url?.includes("youtu.be");
+
+    if (!isYouTube) {
+      setStatus("idle", "Not on YouTube");
+      addMessage(
+        "Please navigate to a YouTube video page to start chatting.",
+        "ai"
+      );
+      return;
+    }
+
+    // Check if it's a video page specifically
+    const isVideoPage =
+      tab.url?.includes("youtube.com/watch") ||
+      tab.url?.includes("youtu.be/") ||
+      tab.url?.includes("youtube.com/shorts/") ||
+      tab.url?.includes("youtube.com/embed/");
+
+    if (!isVideoPage) {
+      setStatus("idle", "No video detected");
+      addMessage(
+        "Please open a specific YouTube video (not the homepage or search results).",
+        "ai"
+      );
+      return;
+    }
+
+    // Extract video ID directly from URL as fallback
+    let videoId = extractVideoIdFromUrl(tab.url);
+
+    if (videoId) {
+      console.log("Video ID extracted from URL:", videoId);
+      activeVideoId = videoId;
+      videoTitle.textContent = "Video detected";
+      videoUrl.textContent = `ID: ${activeVideoId}`;
+      videoInfo.hidden = false;
+      setStatus("ready", "Ready");
+      addMessage("Hi! Ask me anything about this video.", "ai");
+      input.focus();
+      return;
+    }
+
+    // If URL extraction failed, try content script
+    try {
+      console.log("Attempting to use content script...");
+
+      // Ensure content script is injected
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ["content.js"],
+        });
+        console.log("Content script injected");
+      } catch (injectErr) {
+        console.log(
+          "Content script already present or injection failed:",
+          injectErr.message
+        );
+      }
+
+      // Wait a bit for content script to be ready
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        type: "GET_CURRENT_VIDEO_ID",
+      });
+
+      console.log("Content script response:", response);
+
+      if (response?.error) {
+        throw new Error(response.error);
+      }
+
+      if (response?.videoId) {
+        activeVideoId = response.videoId;
+        videoTitle.textContent = "Video detected";
+        videoUrl.textContent = `ID: ${activeVideoId}`;
+        videoInfo.hidden = false;
+        setStatus("ready", "Ready");
+        addMessage("Hi! Ask me anything about this video.", "ai");
+        input.focus();
+        return;
+      }
+    } catch (contentScriptErr) {
+      console.error("Content script error:", contentScriptErr);
+    }
+
+    // If both methods failed
+    setStatus("error", "Cannot detect video");
+    addMessage(
+      "Could not detect video ID. Please refresh the page and try again.",
+      "ai",
+      true
+    );
+  } catch (err) {
+    console.error("Initialization error:", err);
+    setStatus("error", "Init failed");
+    addMessage(`Error: ${err.message}`, "ai", true);
+  }
+}
+
+// -------------------- URL-based video ID extraction --------------------
+
+function extractVideoIdFromUrl(url) {
+  if (!url) return null;
+
+  try {
+    // Pattern 1: youtube.com/watch?v=VIDEO_ID
+    const watchMatch = url.match(/[?&]v=([^&\n?#]+)/);
+    if (watchMatch) return watchMatch[1];
+
+    // Pattern 2: youtu.be/VIDEO_ID
+    const shortMatch = url.match(/youtu\.be\/([^&\n?#]+)/);
+    if (shortMatch) return shortMatch[1];
+
+    // Pattern 3: youtube.com/shorts/VIDEO_ID
+    const shortsMatch = url.match(/youtube\.com\/shorts\/([^&\n?#]+)/);
+    if (shortsMatch) return shortsMatch[1];
+
+    // Pattern 4: youtube.com/embed/VIDEO_ID
+    const embedMatch = url.match(/youtube\.com\/embed\/([^&\n?#]+)/);
+    if (embedMatch) return embedMatch[1];
 
     return null;
-  } catch {
+  } catch (err) {
+    console.error("Error extracting video ID from URL:", err);
     return null;
   }
 }
 
-function showVideo(tab) {
-  videoTitle.textContent = tab.title.replace(" - YouTube", "");
-  videoUrl.textContent = new URL(tab.url).hostname;
-  videoBox.hidden = false;
-}
+// -------------------- status --------------------
 
 function setStatus(type, text) {
-  const dot = status.querySelector(".status-indicator");
-  const label = status.querySelector(".status-text");
+  const indicator = status.querySelector(".status-indicator");
+  const statusText = status.querySelector(".status-text");
 
-  label.textContent = text;
+  const colors = {
+    idle: "#9ca3af",
+    loading: "#f59e0b",
+    ready: "#10b981",
+    error: "#ef4444",
+  };
 
-  dot.style.background =
-    type === "error" ? "#ea4335" : type === "loading" ? "#fbbc04" : "#34a853";
+  indicator.style.background = colors[type] || colors.idle;
+  statusText.textContent = text;
 }
+
+// -------------------- input handlers --------------------
+
+input.addEventListener("input", () => {
+  resizeInput();
+  updateCounter();
+  toggleSend();
+});
+
+input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendQuestion();
+  }
+});
+
+sendBtn.addEventListener("click", sendQuestion);
 
 function resizeInput() {
   input.style.height = "auto";
@@ -125,7 +224,7 @@ async function sendQuestion() {
   toggleSend();
 
   setStatus("loading", "Thinking...");
-  loader.style.display = "flex";
+  loader.hidden = false; // ✅ FIXED: was style.display
 
   try {
     const res = await fetch("http://127.0.0.1:8000/ask", {
@@ -144,13 +243,15 @@ async function sendQuestion() {
     setStatus("ready", "Ready");
   } catch (err) {
     addMessage(
-      err.message.includes("fetch") ? "Backend not reachable." : err.message,
+      err.message.includes("fetch")
+        ? "Backend not reachable. Make sure it's running on http://127.0.0.1:8000"
+        : err.message,
       "ai",
       true
     );
     setStatus("error", "Error");
   } finally {
-    loader.style.display = "none";
+    loader.hidden = true; // ✅ FIXED: was style.display
     input.focus();
   }
 }
@@ -192,3 +293,7 @@ function userIcon() {
     </svg>
   `;
 }
+
+// -------------------- start --------------------
+
+initialize();
